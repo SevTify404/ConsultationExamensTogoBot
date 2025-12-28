@@ -5,7 +5,7 @@
 - ✅ BAC (général et technique)
 - ✅ Probatoire
 
-Ce petit projet interroge automatiquement le site officiel [de l'office du Bac](https://officedubactogo.net) pour récupérer les résultats en temps réel, sans stocker de données personnelles.
+Ce petit projet scrap le site officiel [de l'office du Bac](https://officedubactogo.net) pour récupérer les résultats en temps réel, sans stocker de données personnelles.
 
 ---
 
