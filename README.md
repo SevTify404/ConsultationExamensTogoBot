@@ -89,7 +89,7 @@ python3 main.py
 ## 🛡️ Mentions légales
 
 * Ce bot est **indépendant** et **non affilié** du gouvernement togolais.
-* Les résultats sont issus directement des sites https://officedubactogo.net/ et https://resultats.gouv.tg/#/ 
+* Les résultats sont issus directement des sites https://officedubactogo.net/ , https://resultats.service-public.gouv.tg/  et https://resultats.gouv.tg/#/ 
 * **Aucune donnée personnelle n’est stockée** ou exploitée à des fins commerciales.
 * Ce bot agit comme un assistant de consultation **sans modifier ni intercepter les résultats**.
 ---
