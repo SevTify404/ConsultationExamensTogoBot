@@ -5,6 +5,12 @@
 - ✅ BAC (général et technique)
 - ✅ Probatoire
 
+---
+## 📲 Version en ligne
+Une version fonctionnelle du bot est déjà déployée et disponible sur Telegram :
+
+#### 👉 [Accéder au bot sur Telegram](https://t.me/resultats_examens_tg_bot)
+
 Ce petit projet scrap le site officiel [de l'office du Bac](https://officedubactogo.net) pour récupérer les résultats en temps réel, sans stocker de données personnelles.
 
 ---
