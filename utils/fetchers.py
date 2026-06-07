@@ -170,158 +170,121 @@ class Bepc:
 
 class Bac1:
     def __init__(self, num_table: str | int, enseignement: str):
-        """
-        Constructeur de la class, prend en parametre le numero de table du candidat recherché et sa filiere d'enseignement
-        :param num_table: Numéro de table du candidat
-        :param enseignement: Filiere d'enseignement du candidat (GENERAL ou TECHNIQUE, autre que ces deux ne passe pas)
-        """
         self.num_table = num_table
-        #Meme Logique que pour la class Bepc
-        self.url = None
-        self.session = None     
+        self.session = None
         self.data = None
         self.enseignement = enseignement
 
     async def check(self) -> bool:
-        """
-        Fonction pour voir si tous les attributs sont bons
-        :return: boolean : True si tout est bon, False sinon
-        :rtype: bool
-        """
-        return f"{self.num_table}".isdigit() and self.enseignement in ["TECHNIQUE", "GENERAL"]
-
-    # Les autres méthodes pour Bac1 seraient similaires à celles de Bepc, adaptées pour le Bac 1.
-
-    async def get_token_url(self) -> bool:
-        """
-        Fonction qui recupere le token pour le numero de table donné
-        :returns: Retourne le token
-        :rtype: str
-        """
-        if not self.session:
-            return False
-        payload_post = {"num_table": f"{self.num_table}", "type_enseignement": f"{self.enseignement}"}
-        api_post = "https://resultats.gouv.tg/api/examens/generate-url/bac1"
-        headers_post = {
-            "Content-Type": "application/json",
-            "Accept": "application/json, text/plain, */*",
-            "Referer": "https://resultats.gouv.tg/",
-            "User-Agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Mobile Safari/537.36"
-        }
+        good = ["TECHNIQUE", "GENERAL"]
         try:
-            response = await self.session.post(api_post, json=payload_post, headers=headers_post)
-            data = await response.json()
-            url = data["url"]
-            self.url = url
-        except KeyError:
-            if self.session:
-                await self.session.close()
-            return False
-        except aiohttp.ClientResponseError:
-            if self.session:
-                await self.session.close()
-            await log_me("❌ Erreur de réponse du serveur lors de la récupération du token pour le numéro de table.",
-                         "BAC1")
-            return False
-        except Exception as e:
-            if self.session:
-                await self.session.close()
-            await log_me(
-                f"❌ Une erreur inconnue s'est produite lors de la récupération du token pour le numéro de table : {e}",
-                "BAC1")
+            int(self.num_table)
+        except ValueError:
             return False
         else:
-            return True
-
-    async def get_result_data(self) -> bool:
-        """
-        Fonction qui recupere les resultats de BAC1 d'un eleve précis grace à son numéro de table
-        :returns: Retourne un boolean indiquant si la récupération des données a réussi ou non
-        :rtype: bool
-        """
-        if not self.url or not self.session:
-            return False
-        headers_get = {
-            "Accept": "application/json",
-            "Referer": "https://resultats.gouv.tg/"
-        }
-        api_get = f"https://resultats.gouv.tg/api/examens/bac1/{self.url}"
-        try:
-            response = await self.session.get(api_get, headers=headers_get)
-            data = await response.json()
-            self.data = data[0]
-        except aiohttp.ClientResponseError:
-            await log_me("❌ Erreur de réponse du serveur lors de la récupération des résultats BAC1.", "BAC1")
-            return False
-        except IndexError:
-            return False
-        except Exception as e:
-            await log_me(f"❌ Une erreur inconnue s'est produite lors de la récupération des résultats BAC1 : {e}",
-                         "BAC1")
-            return False
-        else:
-            return True
-        finally:
-            if self.session:
-                await self.session.close()
+            return self.enseignement in good
 
     async def get_bac1_result(self) -> bool:
         """
-        Fonction principale qui recupere les resultats BAC1 d'un eleve précis grace à son numéro de table
-        :returns: Retourne un boolean indiquant si la récupération des données a réussi ou non
+        Fonction principale qui recupere les resultats BAC1 d'un eleve precis grace a son numero de table
+        :returns: Retourne un boolean indiquant si la recuperation des donnees a reussi ou non
         :rtype: bool
         """
         try:
             if not self.session:
                 self.session = aiohttp.ClientSession()
         except aiohttp.ClientError:
-            await log_me("❌ Erreur lors de la création de la session aiohttp pour récupérer les résultats BAC1.",
+            await log_me("❌ Erreur lors de la creation de la session aiohttp pour recuperer les resultats BAC1.",
                          "BAC1")
             return False
-        else:
-            try:
-                if not await self.get_token_url():
+
+        api_post = "https://api-resultats.service-public.gouv.tg/hot/api/v1/exams/6a237c27fb22bb887f6ccb7c/consult"
+        headers_post = {
+            "Content-Type": "application/json",
+            "Accept": "application/json, text/plain, */*",
+            "User-Agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Mobile Safari/537.36"
+        }
+        payload_post = {
+            "data": {
+                "num_table": f"{self.num_table}"
+            }
+        }
+
+        try:
+            async with self.session.post(api_post, json=payload_post, headers=headers_post) as response:
+                try:
+                    res_json = await response.json()
+                except Exception:
+                    res_json = {}
+
+                if response.status == 200 and res_json.get("status") == "success":
+                    self.data = res_json.get("data")
+                    return True
+                else:
+                    if response.status not in (200, 404):
+                        await log_me(f"Erreur HTTP {response.status} ou reponse invalide : {res_json}", "BAC1")
                     return False
-                return await self.get_result_data()
-            except Exception as e:
-                await log_me(
-                    f"❌ Une erreur inconnue s'est produite dans la fonction principale de récupération des résultats BAC1 : {e}",
-                    "BAC1")
-                return False
+        except Exception as e:
+            await log_me(f"❌ Une erreur est survenue lors de la requete BAC1 : {e}", "BAC1")
+            return False
         finally:
             if self.session:
                 await self.session.close()
 
     async def affichage_formatte(self) -> str:
         """
-        Fonction qui affiche les resultats de l'eleve de manière formatée
-        :returns: Retourne une chaine de caractere contenant les resultats formatés en HTML
+        Fonction qui affiche les resultats de l'eleve de maniere formatee
+        :returns: Retourne une chaine de caractere contenant les resultats formates en HTML
         :rtype: str
         """
         dico = self.data
         if not dico:
             formatted_data = "Aucun résultat trouvé pour ce numéro de table."
         else:
-            decision = (dico.get("decision", "Pas trouvé")).lower()
+            nom = dico.get("nom", "")
+            prenom = dico.get("prenom", "")
+            nom_prenom = f"{nom} {prenom}".strip() or dico.get("nom_prenom", "Inconnu")
+
+            sexe = dico.get("sexe", "Pas de Sexe")
+
+            centre = dico.get("centre_decrit")
+            txt_centre = f"\n\n🏫Centre d'écrit : <b>{centre}</b>" if centre else ""
+
+            ets = dico.get("ets_provenance")
+            txt_ets = f"\n\n🏫Etablissement : <b>{ets}</b>" if ets else ""
+
+            date_naiss = dico.get("date_de_naissance") or dico.get("date_naissance")
+            txt_date = f"\n\n🎂Date de Naissance : <b>{date_naiss}</b>" if date_naiss else ""
+
+            serie = dico.get("serie_filiere", "Pas de Série")
+            num_table = dico.get("num_table", "Pas trouvé")
+
+            decision = (dico.get("decision") or dico.get("mention") or "Pas trouvé").lower()
+            mention = dico.get("mention", "Pas trouvé")
+
+            if "ajourn" in decision:
+                ajout = "Amégan l'année prochaine aussi🤣"
+            else:
+                ajout = "Félicitations pour votre réussite ! 🎉"
+
             moyenne = dico.get("moyenne")
-            ajout = "Amégan l'année prochaine aussi🤣" if decision == "ajourne" else "Félicitations pour votre réussite ! 🎉"
             txt_moyenne = f"\n\n📊 Moyenne : <b>{moyenne}</b>" if moyenne else ""
-            formatted_data = f"""<u>EXAMEN DU BAC-1 2024-2025</u>
-👤Nom et Prénom : <b>{dico.get("nom_prenom", "Inconnu")}</b>
 
-🚻Sexe : <b>{dico.get("sexe", "Pas de Sexe")}</b>
+            formatted_data = f"""<u>EXAMEN DU BAC-1 2025-2026</u>
+    👤Nom et Prénom : <b>{nom_prenom}</b>
 
-🏫Centre d'écrit : <b>{dico.get("centre_decrit", "Pas trouvé")}</b>
+    🚻Sexe : <b>{sexe}</b>{txt_date}{txt_centre}{txt_ets}
 
-🎓Série :  <b>{dico.get("serie_filiere", "Pas de Série")}</b>
+    🎓Série : <b>{serie}</b>
 
-🆔Numéro de Table : <b>{dico.get("num_table", "Pas trouvé")}</b>
+    🆔Numéro de Table : <b>{num_table}</b>
 
-👀Décision : <b>{dico.get("mention", "Pas trouvé")}</b>{txt_moyenne}
+    👀Décision : <b>{mention}</b>{txt_moyenne}
 
-{ajout}
-<b>🤖By @Resultats_Examens_Tg_Bot</b>
-"""
+    {ajout}
+
+    <b>🤖By @Resultats_Examens_Tg_Bot</b>
+    """
         return formatted_data
 
 
